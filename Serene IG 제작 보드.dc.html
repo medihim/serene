@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,200;0,300;0,400;0,500;1,300&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+body{margin:0;background:#F4F2EB;font-family:'Noto Sans KR','Noto Sans JP',sans-serif;color:#2E3A32;}
+a{color:#446A5B;} a:hover{color:#598865;}
+button{cursor:pointer;font-family:inherit;}
+textarea{font-family:inherit;}
+@keyframes kenburns{from{transform:scale(1) translateY(0)}to{transform:scale(1.07) translateY(-8px)}}
+@keyframes pvbar{from{width:0}to{width:100%}}
+@keyframes pvbar2{from{width:0}to{width:100%}}
+::-webkit-scrollbar{height:8px;width:8px;} ::-webkit-scrollbar-thumb{background:#D5D1C2;border-radius:4px;} ::-webkit-scrollbar-track{background:transparent;}
+</style>
+</helmet>
+<div style="max-width:1440px;margin:0 auto;padding:36px 32px 80px">
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;padding-bottom:22px;border-bottom:1px solid #DDD8C9;margin-bottom:28px">
+    <div>
+      <img src="assets/serene-logo-green.png" alt="serene clinic" style="height:15px;display:block;margin-bottom:10px">
+      <h1 style="margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em">인스타그램 콘텐츠 제작 보드 <span style="font-weight:400;color:#8A917F;font-size:16px">C01–C12</span></h1>
+      <p style="margin:8px 0 0;font-size:13px;color:#6B7266;line-height:1.7">개별 콘텐츠마다 Preview → 컨펌 → 확정 → 배포 상태를 관리하고, 프레임별 PNG를 제작 규격(1080×1920 / 1080×1350)으로 다운로드합니다.<br>영상 내레이션·모션은 <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a>에서 제작 · 게시 전 일본어 원어민·의료광고·병원 검수 필수</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:stretch">
+      <button onClick="{{ pdf }}" style="border:1px solid #446A5B;background:#446A5B;color:#F2EFE6;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:500">{{ pdfLabel }}</button>
+      <sc-for list="{{ stageCounts }}" as="sc" hint-placeholder-count="4">
+        <div style="background:#FFFFFF;border:1px solid #E2DECF;border-radius:12px;padding:10px 16px;min-width:74px;text-align:center">
+          <div style="font-size:20px;font-family:'Jost',sans-serif;font-weight:300;color:#446A5B">{{ sc.n }}</div>
+          <div style="font-size:10.5px;letter-spacing:.08em;color:#8A917F;margin-top:2px">{{ sc.label }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </header>
+  <sc-if value="{{ pvOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ pvClose }}" style="position:fixed;inset:0;background:rgba(30,40,34,.62);z-index:50;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ pvStop }}" style="background:#F7F5EF;border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 18px 60px rgba(20,30,24,.3)">
+        <div style="font-size:13px;font-weight:700;color:#2E3A32">{{ pvTitle }} <span style="color:#9AA08F;font-weight:400">· 모션 프리뷰 (페이드 전환)</span></div>
+        <div style="position:relative;width:315px;height:560px;border-radius:12px;overflow:hidden;background:#E9ECE3">
+          <sc-for list="{{ pvImgs }}" as="pi" hint-placeholder-count="1">
+            <div style="position:absolute;inset:0;background-image:{{ pi.css }};background-size:cover;background-position:center;transition:opacity .9s ease;opacity:{{ pi.op }};animation:{{ pi.anim }}"></div>
+          </sc-for>
+        </div>
+        <div style="width:315px;height:3px;border-radius:2px;background:#DDD8C9;overflow:hidden"><div style="height:100%;background:#446A5B;animation:{{ pvBarAnim }}"></div></div>
+        <div style="width:300px;min-height:44px;text-align:center">
+          <div style="font-family:'Jost',sans-serif;font-size:9px;letter-spacing:.24em;color:#598865;margin-bottom:4px">{{ pvScene }}</div>
+          <div style="font-size:12px;line-height:1.7;color:#33443A;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif">{{ pvText }}</div>
+        </div>
+        <div style="display:flex;gap:7px">
+          <sc-for list="{{ pvDots }}" as="d" hint-placeholder-count="4">
+            <div style="width:7px;height:7px;border-radius:50%;background:{{ d.bg }}"></div>
+          </sc-for>
+        </div>
+        <button onClick="{{ pvClose }}" style="border:1px solid #C9D6C8;background:#FFFFFF;color:#446A5B;border-radius:999px;padding:7px 22px;font-size:12px">닫기</button>
+      </div>
+    </div>
+  </sc-if>
+  <div style="display:flex;flex-direction:column;gap:26px">
+  <sc-for list="{{ contents }}" as="c" hint-placeholder-count="3">
+    <section data-screen-label="{{ c.id }}" style="background:#FFFFFF;border:1px solid #E6E2D3;border-radius:18px;padding:24px 26px;box-shadow:0 1px 2px rgba(46,58,50,.04)">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:6px">
+        <div style="font-family:'Jost',sans-serif;font-weight:400;font-size:19px;letter-spacing:.06em;color:#446A5B;background:#E5ECE4;border-radius:10px;padding:6px 12px">{{ c.id }}</div>
+        <div style="flex:1;min-width:220px">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <div style="font-size:17px;font-weight:700">{{ c.title }}</div>
+            <div style="font-size:11px;color:#9AA08F;font-family:ui-monospace,monospace">{{ c.file }}</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <sc-for list="{{ c.chips }}" as="ch" hint-placeholder-count="3">
+              <span style="white-space:nowrap;font-size:10.5px;letter-spacing:.04em;color:#446A5B;border:1px solid #C9D6C8;border-radius:999px;padding:3px 10px">{{ ch }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <sc-if value="{{ c.isVideo }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ c.openPv }}" style="white-space:nowrap;border:1px solid #446A5B;background:#FFFFFF;color:#446A5B;border-radius:999px;padding:6px 13px;font-size:11px;margin-right:6px">{{ c.pvLabel }}</button>
+          </sc-if>
+          <sc-for list="{{ c.stages }}" as="st" hint-placeholder-count="4">
+            <button onClick="{{ st.set }}" style="{{ st.style }}">{{ st.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <sc-if value="{{ c.hasGate }}" hint-placeholder-val="{{ false }}">
+        <div style="margin:10px 0 4px;background:#FBF3E2;border:1px solid #E8D9B4;border-radius:10px;padding:9px 14px;font-size:12px;color:#8A6D2F">⚠ 게시 게이트 — {{ c.gate }}</div>
+      </sc-if>
+      <div style="display:flex;gap:18px;overflow-x:auto;padding:14px 2px 6px">
+        <sc-for list="{{ c.frames }}" as="f" hint-placeholder-count="4">
+          <div style="flex:none">
+            <div data-frame="{{ f.fid }}" style="position:relative;overflow:hidden;width:288px;height:{{ f.fh }}px;background:#E9ECE3;border-radius:6px;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif">
+              <sc-if value="{{ f.hasSlot }}" hint-placeholder-val="{{ false }}">
+                <div onDrop="{{ f.onDrop }}" onDragOver="{{ f.onOver }}" style="position:absolute;inset:0;background:linear-gradient(180deg,#E2E8DE,#D3DCCF)">
+                  <sc-if value="{{ f.hasImg }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;background-image:{{ f.imgCss }};background-size:cover;background-position:center"></div></sc-if>
+                  <sc-if value="{{ f.noImg }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;inset:14px;border:1.5px dashed #A8B5A4;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#7C8A78;font-size:11px;line-height:1.7;padding:12px;font-family:'Noto Sans KR',sans-serif">
+                      <div style="font-size:20px;margin-bottom:6px">⬚</div>
+                      <div style="font-weight:700">이미지를 여기로 드래그</div>
+                      <div style="margin-top:2px">{{ f.hint }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="position:absolute;left:0;right:0;bottom:0;background:rgba(229,236,228,.95);border-radius:22px 22px 0 0;padding:16px 18px 34px;text-align:center"><img src="assets/serene-symbol-green.png" alt="" style="height:14px;margin-bottom:8px;opacity:.85">
+                  <div style="font-size:8.5px;letter-spacing:.34em;color:#598865;font-family:'Jost',sans-serif;font-weight:400;margin-bottom:8px">{{ f.label }}</div>
+                  <sc-for list="{{ f.lines }}" as="ln" hint-placeholder-count="2"><div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:15.5px;font-weight:300;line-height:1.65;color:#2E4A3E">{{ ln }}</div></sc-for>
+                  <sc-if value="{{ f.hasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:8.5px;letter-spacing:.22em;color:#7C8A78;margin-top:8px">{{ f.sub }}</div></sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.plainHook }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px 20px;background:radial-gradient(ellipse at 50% -10%,#A6BFA6 0%,#8BA991 55%,#7FA087 100%)">
+                  <img src="assets/serene-symbol-white.png" alt="" style="height:24px;margin-bottom:16px;opacity:.92"><div style="font-size:9px;letter-spacing:.34em;color:#EDF2E8;font-family:'Jost',sans-serif;font-weight:400;margin-bottom:14px">{{ f.label }}</div>
+                  <sc-for list="{{ f.lines }}" as="ln" hint-placeholder-count="2"><div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:16px;font-weight:300;line-height:1.8;color:#FFFFFF">{{ ln }}</div></sc-for>
+                  <sc-if value="{{ f.hasSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:9px;letter-spacing:.26em;color:#E7EDE0;margin-top:14px">{{ f.sub }}</div></sc-if>
+                  <sc-if value="{{ f.hasCov }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:18px;display:flex;flex-direction:column;gap:7px;width:78%">
+                      <sc-for list="{{ f.covItems }}" as="cv" hint-placeholder-count="3">
+                        <div style="border-top:1px solid rgba(255,255,255,.4);padding-top:7px;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:11px;color:#F4F7F0;text-align:left">{{ cv }}</div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tList }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:26px 20px;background:#F3F1E8">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400">{{ f.label }}</div>
+                  <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:14px;font-weight:500;color:#2E4A3E;margin:10px 0 8px;line-height:1.6">{{ f.title }}</div><div style="width:28px;height:5px;background:#AFC2AC;margin:0 0 14px"></div>
+                  <div style="display:flex;flex-direction:column;gap:13px">
+                    <sc-for list="{{ f.items }}" as="it" hint-placeholder-count="3">
+                      <div style="display:flex;gap:10px;align-items:flex-start">
+                        <div style="flex:none;width:23px;height:23px;border:1px solid #446A5B;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Jost',sans-serif;font-size:9.5px;color:#446A5B">{{ it.n }}</div>
+                        <div>
+                          <div style="font-size:11.5px;font-weight:600;color:#33443A;line-height:1.5">{{ it.t }}</div>
+                          <sc-if value="{{ it.hasS }}" hint-placeholder-val="{{ false }}"><div style="font-size:9px;color:#77836F;margin-top:2px;line-height:1.6">{{ it.s }}</div></sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tSplit }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:26px 16px;background:#F3F1E8;display:flex;flex-direction:column">
+                  <div style="text-align:center;font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400">{{ f.label }}</div>
+                  <div style="text-align:center;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:13.5px;color:#2E4A3E;margin:8px 0 14px">{{ f.title }}</div>
+                  <div style="flex:1;display:flex;gap:8px;max-height:290px">
+                    <div style="flex:1;background:#E5ECE4;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;text-align:center">
+                      <div style="width:56px;height:56px;border-radius:50%;border:1px solid #8BA991;display:flex;align-items:center;justify-content:center;margin:10px 0 14px"><div style="width:36px;height:36px;border-radius:50%;border:1px solid #8BA991;display:flex;align-items:center;justify-content:center"><div style="width:16px;height:16px;border-radius:50%;background:#8BA991"></div></div></div>
+                      <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:17px;color:#446A5B;font-family:'Jost',sans-serif;font-weight:300;letter-spacing:.14em">{{ f.colL.tag }}</div>
+                      <div style="font-size:9.5px;color:#4A5A50;line-height:1.8;margin-top:8px">{{ f.colL.desc }}</div>
+                    </div>
+                    <div style="flex:1;background:#446A5B;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;text-align:center">
+                      <div style="width:56px;height:56px;margin:10px 0 14px;display:flex;flex-direction:column;justify-content:center;gap:5px"><div style="height:1px;background:#C7D4C6;width:100%"></div><div style="height:1px;background:#C7D4C6;width:70%;margin:0 auto"></div><div style="height:1px;background:#C7D4C6;width:40%;margin:0 auto"></div><div style="width:8px;height:8px;border-radius:50%;background:#E3DAC8;margin:2px auto 0"></div></div>
+                      <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:17px;color:#F2EFE6;font-family:'Jost',sans-serif;font-weight:300;letter-spacing:.14em">{{ f.colR.tag }}</div>
+                      <div style="font-size:9.5px;color:#D5DFD2;line-height:1.8;margin-top:8px">{{ f.colR.desc }}</div>
+                    </div>
+                  </div>
+                  <div style="text-align:center;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:11.5px;color:#446A5B;margin-top:16px">{{ f.note }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tSteps }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:28px 24px;background:#F3F1E8">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400">{{ f.label }}</div>
+                  <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:13.5px;color:#2E4A3E;margin:8px 0 18px">{{ f.title }}</div>
+                  <div style="position:relative;padding-left:2px">
+                    <div style="position:absolute;left:11px;top:8px;bottom:8px;width:1px;background:linear-gradient(180deg,#446A5B,#DACEB8)"></div>
+                    <div style="display:flex;flex-direction:column;gap:15px">
+                      <sc-for list="{{ f.items }}" as="it" hint-placeholder-count="6">
+                        <div style="display:flex;gap:12px;align-items:center;position:relative">
+                          <sc-if value="{{ it.g }}" hint-placeholder-val="{{ false }}"><div style="flex:none;width:22px;height:22px;border-radius:50%;background:#446A5B;color:#F2EFE6;display:flex;align-items:center;justify-content:center;font-family:'Jost',sans-serif;font-size:8.5px">{{ it.n }}</div></sc-if>
+                          <sc-if value="{{ it.b }}" hint-placeholder-val="{{ false }}"><div style="flex:none;width:22px;height:22px;border-radius:50%;background:#DACEB8;color:#5C4F35;display:flex;align-items:center;justify-content:center;font-family:'Jost',sans-serif;font-size:8.5px">{{ it.n }}</div></sc-if>
+                          <div style="font-size:11px;font-weight:500;color:#33443A">{{ it.t }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tChat }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:28px 18px;background:#F3F1E8;display:flex;flex-direction:column">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400;margin-bottom:16px">{{ f.label }}</div>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <sc-for list="{{ f.bubbles }}" as="b" hint-placeholder-count="2">
+                      <sc-if value="{{ b.p }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-end;max-width:82%;background:#DACEB8;border-radius:14px 14px 3px 14px;padding:10px 13px;font-size:10.5px;line-height:1.7;color:#4A3F2A">{{ b.text }}</div></sc-if>
+                      <sc-if value="{{ b.d }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;max-width:82%;background:#446A5B;border-radius:14px 14px 14px 3px;padding:10px 13px;font-size:10.5px;line-height:1.7;color:#F2EFE6">{{ b.text }}</div></sc-if>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;justify-content:center">
+                    <sc-for list="{{ f.tags }}" as="tg" hint-placeholder-count="4">
+                      <span style="border:1px solid #8BA991;border-radius:999px;padding:4px 10px;font-size:9px;color:#446A5B">{{ tg }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="text-align:center;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:11.5px;line-height:1.8;color:#446A5B;margin-top:20px">{{ f.note }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tCase }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:22px 16px;background:#E9EDE4;display:flex;flex-direction:column">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400;margin-bottom:12px">{{ f.label }}</div>
+                  <div style="text-align:center;font-size:14px;font-weight:500;color:#446A5B;margin-bottom:5px">実症例のご紹介</div><div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:10px"><div style="width:3px;height:3px;border-radius:50%;background:#8BA991"></div><div style="width:24px;height:2px;border-radius:2px;border:1px solid #8BA991"></div><div style="width:3px;height:3px;border-radius:50%;background:#8BA991"></div></div><div style="display:flex;gap:8px;height:146px">
+                    <sc-for list="{{ f.slots }}" as="sl" hint-placeholder-count="2">
+                      <div onDrop="{{ sl.onDrop }}" onDragOver="{{ sl.onOver }}" style="flex:1;position:relative;background:#E5ECE4;border-radius:10px;overflow:hidden">
+                        <sc-if value="{{ sl.hasImg }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;background-image:{{ sl.imgCss }};background-size:cover;background-position:center"></div></sc-if>
+                        <sc-if value="{{ sl.noImg }}" hint-placeholder-val="{{ false }}">
+                          <div style="position:absolute;inset:8px;border:1px dashed #A8B5A4;border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#7C8A78;line-height:1.6;padding:6px;font-family:'Noto Sans KR',sans-serif">실증례 사진<br>드래그 삽입</div>
+                        </sc-if>
+                        <div style="position:absolute;top:7px;left:9px;font-size:8px;letter-spacing:.26em;color:#446A5B;background:rgba(243,241,232,.85);border-radius:4px;padding:2px 6px">{{ sl.tag }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:10px"><div style="flex:1;text-align:center"><span style="font-size:11px;font-weight:500;color:#2E4A3E;background:linear-gradient(transparent 62%,#E7C25C 62%);padding:0 6px">施術前</span></div><div style="flex:1;text-align:center"><span style="font-size:11px;font-weight:500;color:#2E4A3E;background:linear-gradient(transparent 62%,#E7C25C 62%);padding:0 6px">1ヶ月後</span></div></div><div style="font-size:9px;color:#77836F;line-height:1.8;margin-top:8px">{{ f.note }}</div>
+                  <div style="font-size:8.5px;color:#A08C5B;line-height:1.7;margin-top:auto;padding-bottom:16px">※実際の症例写真・撮影条件・注意事項を掲載前に確認</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tPoint }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:30px 24px;background:#F3F1E8">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400">{{ f.label }}</div>
+                  <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:42px;color:#8BA991;font-family:'Jost',sans-serif;font-weight:200;margin:16px 0 4px">{{ f.n }}</div>
+                  <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:17px;font-weight:500;color:#2E4A3E">{{ f.title }}</div>
+                  <div style="width:26px;height:1px;background:#446A5B;margin:14px 0"></div>
+                  <div style="font-size:10.5px;line-height:2;color:#4A5A50">{{ f.body }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tInfo }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;padding:28px 22px;background:#F3F1E8">
+                  <div style="font-size:8.5px;letter-spacing:.32em;color:#598865;font-family:'Jost',sans-serif;font-weight:400">{{ f.label }}</div>
+                  <div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:14px;color:#2E4A3E;margin:10px 0 14px">{{ f.title }}</div>
+                  <div>
+                    <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="border-top:1px solid #DAD6C6;padding:9px 0">
+                        <div style="font-size:8.5px;letter-spacing:.18em;color:#598865;margin-bottom:3px">{{ r.k }}</div>
+                        <div style="font-size:10.5px;color:#33443A;line-height:1.7">{{ r.v }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tView }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;background:#446A5B;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px"><div style="position:absolute;right:-6px;top:-14px;font-family:'Jost',sans-serif;font-weight:300;font-size:110px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none">se</div>
+                  <div style="font-size:8.5px;letter-spacing:.34em;color:#A9BFA8;font-family:'Jost',sans-serif;font-weight:400;margin-bottom:14px">{{ f.label }}</div>
+                  <sc-for list="{{ f.lines }}" as="ln" hint-placeholder-count="2"><div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:15px;font-weight:300;line-height:1.9;color:#F2EFE6">{{ ln }}</div></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.tCta }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;inset:0;background:#E3DAC8;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:26px 22px">
+                  <sc-for list="{{ f.lines }}" as="ln" hint-placeholder-count="1"><div style="font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif;font-size:14.5px;font-weight:300;line-height:1.8;color:#4C5741">{{ ln }}</div></sc-for>
+                  <div style="display:flex;flex-direction:column;gap:9px;margin-top:20px;width:84%">
+                    <sc-for list="{{ f.btns }}" as="b" hint-placeholder-count="2">
+                      <sc-if value="{{ b.primary }}" hint-placeholder-val="{{ false }}"><div style="background:#8BA991;color:#FFFFFF;border-radius:999px;padding:10px 14px;font-size:10.5px;font-weight:500">{{ b.label }}</div></sc-if>
+                      <sc-if value="{{ b.sec }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #446A5B;color:#446A5B;border-radius:999px;padding:9px 14px;font-size:10.5px">{{ b.label }}</div></sc-if>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.safe }}" hint-placeholder-val="{{ false }}">
+                <div data-safe="1" style="position:absolute;inset:0;pointer-events:none">
+                  <div style="position:absolute;top:0;left:0;right:0;height:13%;background:rgba(170,80,60,.07);border-bottom:1px dashed rgba(170,80,60,.4)"></div>
+                  <div style="position:absolute;bottom:0;left:0;right:0;height:17%;background:rgba(170,80,60,.07);border-top:1px dashed rgba(170,80,60,.4)"></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.dark }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none"><img src="assets/serene-logo-white.png" alt="serene clinic" style="height:8px;opacity:.92"></div></sc-if>
+              <sc-if value="{{ f.light }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;pointer-events:none"><img src="assets/serene-logo-green.png" alt="serene clinic" style="height:8px;opacity:.9"></div></sc-if>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;width:288px">
+              <div style="font-size:10px;color:#8A917F;font-family:ui-monospace,monospace">{{ f.tagLabel }}</div>
+              <button onClick="{{ f.dl }}" style="border:1px solid #C9D6C8;background:#FFFFFF;color:#446A5B;border-radius:8px;padding:4px 10px;font-size:10.5px">PNG ↓</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:16px;margin-top:16px">
+        <div style="background:#F8F6EF;border:1px solid #EAE6D7;border-radius:12px;padding:16px 18px">
+          <div style="font-size:11px;letter-spacing:.12em;color:#598865;font-weight:700;margin-bottom:8px">콘텐츠 정보</div>
+          <div style="font-size:12px;line-height:1.8;color:#4A5347">{{ c.role }}</div>
+          <div style="font-size:11.5px;color:#6B7266;margin-top:10px"><b style="color:#446A5B">CTA</b> · {{ c.cta }}</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+            <sc-for list="{{ c.checks }}" as="ck" hint-placeholder-count="2">
+              <div style="font-size:11px;color:#8A6D2F;line-height:1.6">· {{ ck }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <sc-if value="{{ c.hasScript }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#F8F6EF;border:1px solid #EAE6D7;border-radius:12px;padding:16px 18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-size:11px;letter-spacing:.12em;color:#598865;font-weight:700">ELEVENLABS 내레이션 원고 (JP)</div>
+              <button onClick="{{ c.copy }}" style="border:1px solid #C9D6C8;background:#FFFFFF;color:#446A5B;border-radius:8px;padding:4px 10px;font-size:10.5px">{{ c.copyLabel }}</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ c.script }}" as="sq" hint-placeholder-count="4">
+                <div style="display:flex;gap:10px;align-items:baseline">
+                  <div style="flex:none;font-size:9.5px;letter-spacing:.1em;color:#8BA991;width:56px;font-weight:700">{{ sq.scene }}</div>
+                  <div>
+                    <div style="font-size:12px;line-height:1.8;color:#33443A;font-family:'Zen Kaku Gothic New','Noto Sans JP',sans-serif">{{ sq.text }}</div>
+                    <div style="font-size:10.5px;line-height:1.7;color:#9AA08F">{{ sq.kr }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ c.noScript }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#F8F6EF;border:1px solid #EAE6D7;border-radius:12px;padding:16px 18px">
+            <div style="font-size:11px;letter-spacing:.12em;color:#598865;font-weight:700;margin-bottom:8px">캡션 골격</div>
+            <div style="font-size:12px;line-height:1.9;color:#4A5347">{{ c.caption }}</div>
+          </div>
+        </sc-if>
+        <div style="background:#F8F6EF;border:1px solid #EAE6D7;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="font-size:11px;letter-spacing:.12em;color:#598865;font-weight:700">컨펌 메모</div>
+          <textarea value="{{ c.note }}" onChange="{{ c.onNote }}" placeholder="수정 요청·컨펌 코멘트를 남기세요" style="width:100%;box-sizing:border-box;min-height:74px;border:1px solid #E0DCCB;border-radius:8px;padding:9px 11px;font-size:12px;resize:vertical;background:#FFFFFF;color:#33443A"></textarea>
+          <button onClick="{{ c.dlAll }}" style="background:#446A5B;color:#F2EFE6;border:none;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:500">{{ c.dlAllLabel }}</button>
+        </div>
+      </div>
+    </section>
+  </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showSafeZone&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;표시&quot;}, &quot;showScripts&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;표시&quot;}}">
+class Component extends DCLogic {
+  state = { status: {}, images: {}, copied: '', busy: '', preview: null, pvBusy: '', pdfBusy: false };
+
+  KRS = {
+    C01:['요즘 얼굴이 커진 것 같아… 그런 순간 있지 않나요?','볼의 위치, 페이스라인, 부기. 느끼는 방식은 사람마다 다릅니다.','원인은 하나가 아닙니다. 먼저 지금 상태를 아는 것부터.','다음 가이드는 프로필에서. 저장해 두면 나중에 다시 볼 수 있어요.'],
+    C02:['처짐, 볼륨, 탄력. 비슷하게 느껴져도 같은 고민이 아닙니다.','각각 관찰하는 포인트가 다릅니다.','이것은 진단이 아니라 상담을 위한 관찰의 입구입니다.','다음은 "확인할 3가지" 가이드에서. 저장해 두세요.'],
+    C04:['RF와 HIFU, 무엇이 다를까요?','RF는 열에너지, HIFU는 초음파 에너지를 이용한 접근입니다.','어느 쪽이 "위"가 아닙니다. 고민과 상태에 따라 상담 방향이 달라집니다.','자세한 내용은 LINE으로 상담해 주세요.'],
+    C05:['XERF는 어떤 고민일 때 상담하는 시술일까요?','페이스라인, 탄력 부족, 자연스러운 인상. 상담 계기는 사람마다 다릅니다.','적합한지는 진찰에서 함께 확인합니다.','먼저 LINE으로 고민을 들려주세요.'],
+    C06:['시술을 정하기 전에, 먼저 확인하는 것이 있습니다.','신경 쓰이는 부위, 원하는 변화, 체류·회복 일정.','그 확인에서부터 선택지를 함께 정해갑니다.','의료진 소개는 프로필에서. 상담은 LINE으로.'],
+    C07:['"이 시술을 받고 싶다"고 내원하셔도…','먼저 확인하는 것은 시술명이 아니라 "고민".','처짐, 볼륨, 탄력, 페이스라인. 한 분에게 맞는 선택을 함께.','상담은 LINE에서.'],
+    C09:['한국 미용의 날, 성수에서 어떻게 보낼까?','카페에서 한숨 돌리고, 벽돌길 산책, 그리고 세린으로.','조용한 하루 속에 세린을.','위치와 오시는 길은 프로필에서 확인하세요.'],
+    C10:['일본에서의 예약도 어렵지 않습니다.','LINE 상담, 고민·방한 일정 공유, 그리고 예약.','한국으로. 성수 세린에서 의사의 진찰을.','일정 확인도 LINE으로 편하게.'],
+    C11:['어떤 시술이 맞는지 몰라도 괜찮습니다.','관심 부위, 희망사항, 방한 일정, 사진. 이 4가지를 보내주세요.','사진만으로 판단하지 않습니다. 제안은 진찰 후에.','LINE으로 편하게 상담하세요.'],
+    C12:['"무엇을 받을까?"보다 지금 상태를 아는 것부터.','볼의 위치, 페이스라인, 탄력.','관찰은 진단이 아니라 상담을 위한 질문입니다.','상태 확인 가이드는 프로필에서. LINE 상담도 가능합니다.']
+  };
+
+  STAGES = ['Preview', '컨펌', '확정', '배포'];
+
+  DATA = [
+    {id:'C01', file:'SER_JP_C01_TOF_P1_R', kind:'Reel', funnel:'TOF', pillar:'P1 고민·상태 인식', title:'얼굴 변화 자각',
+     role:'거울 순간을 통해 막연한 얼굴 변화를 자각시키는 첫 유입 Hook. 시술명 없이 관찰의 출발점을 만든다.',
+     cta:'프로필에서 다음 가이드 보기 / 저장해 두기',
+     checks:['노화 불안 과자극 금지','얼굴 변화 단정·원인 진단 표현 금지'],
+     script:[['HOOK','最近、顔が大きくなった気がする…そんな瞬間はありませんか。'],['CLARIFY','頬の位置、フェイスライン、むくみ。感じ方は人それぞれです。'],['VIEW','原因はひとつではありません。まずは、今の状態を知ることから。'],['ACTION','次のガイドはプロフィールから。保存しておくと、あとで見返せます。']],
+     frames:[
+      {t:'hook', label:'SERENE VIEW 01', lines:['最近、顔が大きくなった','気がする…？'], slot:'c01-hero', hint:'거울 인물 컷 · 자연광'},
+      {t:'list', label:'OBSERVE', title:'鏡の前で、観察してみる', items:[['01','頬の位置は変わった？','高さの印象をみる'],['02','フェイスラインの印象は？','輪郭のラインをみる'],['03','むくみと重なっていない？','朝夕の変化をみる']]},
+      {t:'view', label:'SERENE VIEW', lines:['原因はひとつでは','ありません。','まずは、今の状態を','知ることから。']},
+      {t:'cta', lines:['続きは、プロフィールから。'], btns:['プロフィールで次のガイドへ','保存しておく']}]},
+    {id:'C02', file:'SER_JP_C02_TOF_P1_D', kind:'Dynamic', funnel:'TOF', pillar:'P1 고민·상태 인식', title:'처짐·볼륨·탄력 분류',
+     role:'비슷하게 느끼는 고민도 관찰 지점이 다름을 시각적으로 분류. 텍스트가 주인공.',
+     cta:'저장하기 / C03 가이드 보기',
+     checks:['영역 표시가 의학적 진단으로 오인되지 않도록 추상 표현 유지'],
+     script:[['HOOK','たるみ、ボリューム、ハリ。同じように感じても、同じお悩みではありません。'],['CLARIFY','それぞれ、観察するポイントが違います。'],['VIEW','これは診断ではなく、相談のための観察の入り口です。'],['ACTION','続きは「確認したい3つのこと」ガイドで。保存しておいてください。']],
+     frames:[
+      {t:'hook', label:'SERENE GUIDE 02', lines:['たるみ・ボリューム・ハリ','同じお悩みでは','ありません。']},
+      {t:'list', label:'CLARIFY', title:'観察するポイントが違います', items:[['01','たるみ','フェイスライン周りをみる'],['02','ボリューム','頬の位置をみる'],['03','ハリ','肌の表面をみる']]},
+      {t:'view', label:'SERENE VIEW', lines:['これは診断ではなく、','相談のための','観察の入り口です。']},
+      {t:'cta', lines:['次は「確認したい3つのこと」'], btns:['保存しておく','C03ガイドを見る']}]},
+    {id:'C03', file:'SER_JP_C03_MOFE_P1_C', kind:'Carousel', funnel:'MOF-Early', pillar:'P1 고민·상태 인식', title:'리프팅 전 3가지 확인',
+     role:'리프팅 검토 고객에게 선택 전 확인 기준(피부 두께·지방 분포·처짐 위치)을 제공하는 저장형 정보 자산.',
+     cta:'저장해 두기 / LINE에서 고민 문의하기',
+     checks:['고객 자가판정 유도 금지','구체적 시술 추천은 진찰 이후로 제한'],
+     caption:'3개 체크포인트 요약 → 개인별 차이 안내 → 진찰 필요성 → 저장/상담 CTA',
+     frames:[
+      {t:'hook', label:'SERENE GUIDE 03', lines:['リフトアップ施術を','選ぶ前に','確認したい3つのこと'], cov:['01　肌の厚み','02　脂肪のつき方','03　たるみの位置']},
+      {t:'point', label:'CHECK 01', n:'01', title:'肌の厚み', body:'厚みには個人差があります。同じ施術でも、感じ方は同じではありません。'},
+      {t:'point', label:'CHECK 02', n:'02', title:'脂肪のつき方', body:'多い・少ないではなく、どこに、どうついているかを確認します。'},
+      {t:'point', label:'CHECK 03', n:'03', title:'たるみの位置', body:'気になる場所と、実際に観察する場所は、違うことがあります。'},
+      {t:'view', label:'SERENE VIEW', lines:['3つを合わせて確認し、','診察のあとに','方向を決めていきます。']},
+      {t:'cta', lines:['選ぶ前に、まず確認から。'], btns:['保存しておく','LINEでお悩みを相談する']}]},
+    {id:'C04', file:'SER_JP_C04_MOFE_P2_D', kind:'Dynamic', funnel:'MOF-Early', pillar:'P2 시술 정보·선택', title:'RF/HIFU 중립 비교',
+     role:'RF와 HIFU를 우열이 아닌 접근 방식의 차이로 이해시키는 비교 콘텐츠. 좌우 동일한 정보량·시각적 무게.',
+     cta:'상세 내용 보기 / LINE에서 상담하기',
+     checks:['우월·열등·비교우위 표현 금지','장비 실물 재현 금지 · 의료진 최종 검수'],
+     script:[['HOOK','RFとHIFU、何が違うの？'],['CLARIFY','RFは熱エネルギー、HIFUは超音波エネルギーを利用したアプローチです。'],['VIEW','どちらが「上」ではありません。お悩みと状態で、ご相談の方向は変わります。'],['ACTION','詳しくは、LINEでご相談ください。']],
+     frames:[
+      {t:'hook', label:'SERENE GUIDE 04', lines:['RFとHIFU、','何が違うの？']},
+      {t:'split', label:'COMPARE', title:'アプローチの違い', colL:{tag:'RF', desc:'熱エネルギーを利用したアプローチ'}, colR:{tag:'HIFU', desc:'超音波エネルギーを利用したアプローチ'}, note:'どちらが「上」ではありません。'},
+      {t:'view', label:'SERENE VIEW', lines:['お悩みと状態によって、','ご相談の方向は','変わります。']},
+      {t:'cta', lines:['違いを知ることから。'], btns:['詳しい内容を見る','LINEで相談する']}]},
+    {id:'C05', file:'SER_JP_C05_MOFE_P2_R', kind:'Reel', funnel:'MOF-Early', pillar:'P2 시술 정보·선택', title:'XERF 상담 가이드',
+     role:'XERF 관심 고객이 상담 전에 자신의 고민을 정리하도록 돕는 탐색 가이드. 키워드는 적응증이 아닌 상담 예시.',
+     cta:'LINE에서 내 고민 문의하기',
+     checks:['장비 외형 생성 금지 · 적합성·결과 보장 금지','제품명 표기·설명은 병원 검수본 사용'],
+     script:[['HOOK','XERFって、どんな悩みのときに相談する施術？'],['CLARIFY','フェイスライン、ハリ不足、自然な印象。相談のきっかけは人それぞれです。'],['VIEW','適しているかどうかは、診察で一緒に確認します。'],['ACTION','まずはLINEで、あなたのお悩みをお聞かせください。']],
+     frames:[
+      {t:'hook', label:'SERENE GUIDE 05', lines:['XERFって、どんな悩みの','ときに相談する施術？'], slot:'c05-hero', hint:'턱선을 만지는 인물 컷'},
+      {t:'list', label:'EXAMPLES', title:'相談のきっかけの例', items:[['01','フェイスライン','輪郭の印象が気になる'],['02','ハリ不足','肌の弾力が気になる'],['03','自然な印象','大きな変化より自然さを重視']]},
+      {t:'view', label:'SERENE VIEW', lines:['まずは、診察から。','適した方法は、','状態によって変わります。']},
+      {t:'cta', lines:['あなたのお悩みから。'], btns:['LINEで自分の悩みを相談する']}]},
+    {id:'C06', file:'SER_JP_C06_MOFL_P3_R', kind:'Reel', funnel:'MOF-Late', pillar:'P3 의료진·진료 철학', title:"Doctor's View 01",
+     role:'의료진이 시술보다 현재 상태·고민을 먼저 확인한다는 신뢰 메시지. 실제 원장 화법으로 전달.',
+     cta:'의료진 소개 보기 / LINE에서 상담하기',
+     gate:'목업 의료진 이미지는 게시 금지 — 실제 세린 원장 사진·영상으로 교체 필수',
+     checks:['원장 발화·직함·진료 철학 검수','실제 인물 사용 승인 확인'],
+     script:[['HOOK','施術を決める前に、まず確認していることがあります。'],['CLARIFY','気になる部位、ご希望の変化、ご滞在や回復のご予定。'],['VIEW','その確認から、選択肢を一緒に決めていきます。'],['ACTION','医師紹介はプロフィールから。ご相談はLINEでどうぞ。']],
+     frames:[
+      {t:'hook', label:"DOCTOR'S VIEW 01", lines:['施術を決める前に、','まず確認している','ことがあります。'], slot:'c06-doctor', hint:'실제 원장 상담 장면 (교체 필수)'},
+      {t:'list', label:'CONSULTATION', title:'診察の前に、お聞きすること', items:[['01','気になる部位','ご自身が感じている変化'],['02','ご希望の変化','どんな印象になりたいか'],['03','ご滞在・回復のご予定','スケジュールに合わせて']]},
+      {t:'view', label:'SERENE VIEW', lines:['その確認から、','選択肢を一緒に','決めていきます。']},
+      {t:'cta', lines:['まずは、お話から。'], btns:['医師紹介を見る','LINEで相談する']}]},
+    {id:'C07', file:'SER_JP_C07_MOFL_P3_D', kind:'Dynamic', funnel:'MOF-Late', pillar:'P3 의료진·진료 철학', title:'시술명보다 고민 확인',
+     role:'특정 시술을 요청해도 고민을 재확인하는 상담 방식을 대화 구조로 설명. 같은 방향의 상담 과정으로 표현.',
+     cta:'상담 과정 보기 / LINE에서 고민 보내기',
+     checks:['시술 요청을 잘못된 선택처럼 비난하지 않기 · 존중감 있는 표현'],
+     script:[['HOOK','「この施術を受けたい」と思って来院しても…'],['CLARIFY','まず確認するのは、施術名ではなく「お悩み」。'],['VIEW','たるみ、ボリューム、ハリ、フェイスライン。おひとりに合う選択を、一緒に。'],['ACTION','ご相談はLINEからどうぞ。']],
+     frames:[
+      {t:'hook', label:'SERENE VIEW 02', lines:['「この施術を受けたい」と','思って来院しても…']},
+      {t:'chat', label:'CONSULTATION', bubbles:[['P','この施術を受けたいのですが…'],['D','まず、お悩みから確認させてください。']], tags:['たるみ','ボリューム','ハリ','フェイスライン'], note:'確認するのは、施術名ではなく「お悩み」。'},
+      {t:'view', label:'SERENE VIEW', lines:['おひとりに合う選択を、','一緒に見つけて','いきます。']},
+      {t:'cta', lines:['相談は、お悩みから。'], btns:['相談の流れを見る','LINEでお悩みを送る']}]},
+    {id:'C08', file:'SER_JP_C08_MOFL_P4_C', kind:'Carousel', funnel:'MOF-Late', pillar:'P4 증례·검토 근거', title:'XERF Case 템플릿',
+     role:'실제 증례를 동일 정보 구조로 기록하는 재사용형 Case 템플릿. 사진 결과만이 아니라 맥락·조건을 함께 제공.',
+     cta:'상세 증례 보기 / LINE에서 상담하기',
+     gate:'BEFORE/AFTER 자리표시자 — 환자 동의 완료 실증례로 교체 필수',
+     checks:['가상 B&A 생성 금지 · 동일 촬영조건·경과 시점 확인','부작용·개인차 문구 게시 전 필수 확인'],
+     caption:'실증례 맥락 → 진찰 포인트 → 조건·개인차 → 상담 CTA · 환자 식별정보 미포함',
+     frames:[
+      {t:'hook', label:'XERF CASE 01', lines:['お悩み｜','フェイスライン・ハリ'], sub:'REAL CASE TEMPLATE'},
+      {t:'case', label:'BEFORE / AFTER', slots:['c08-before','c08-after'], note:'同一条件・ご本人同意済みの実症例のみ掲載します。'},
+      {t:'info', label:'BACKGROUND', title:'ご相談の背景', rows:[['お悩み','フェイスラインのゆるみ、ハリ不足'],['ご希望','自然な印象の変化'],['記載範囲','非識別化した内容のみ']]},
+      {t:'info', label:'DIAGNOSIS', title:'診察で確認したポイント', rows:[['01','肌の厚み'],['02','脂肪のつき方'],['03','たるみの位置']]},
+      {t:'info', label:'CONDITIONS', title:'施術・撮影条件', rows:[['経過時点','掲載前に確認・明記'],['撮影条件','同一条件で撮影'],['注意事項','効果には個人差があります']]},
+      {t:'cta', lines:['ご提案は、診察のあとに。'], btns:['詳しい症例を見る','LINEで相談する']}]},
+    {id:'C09', file:'SER_JP_C09_TOF_P6_R', kind:'Reel', funnel:'TOF', pillar:'P6 성수·브랜드 경험', title:'성수 Beauty Day',
+     role:'성수 방문 경험 속에 세린을 자연스럽게 포함하는 라이프스타일 콘텐츠. 조용한 하루 기록의 무드.',
+     cta:'세린 위치·방문 정보 보기 / 프로필 보기',
+     gate:'성수·병원 이미지는 무드 레퍼런스 — 실제 동선·외관·공간 촬영본으로 교체 필수',
+     checks:['장소·동선·영업정보 사실 확인','촬영·상표 사용 권한 확인'],
+     script:[['HOOK','韓国美容の日、聖水でどう過ごす？'],['CLARIFY','カフェでひと息、れんが通りをゆっくり散歩、そしてセリーンへ。'],['VIEW','静かな一日の中に、セリーンを。'],['ACTION','場所とアクセスは、プロフィールからご確認ください。']],
+     frames:[
+      {t:'hook', label:'SEONGSU BEAUTY DAY', lines:['韓国美容の日、','聖水でどう過ごす？'], sub:'CAFE • SERENE • WALK', slot:'c09-street', hint:'성수 거리 실사 컷'},
+      {t:'list', label:'ONE DAY PLAN', title:'静かな一日のプラン', items:[['01','CAFE','聖水のカフェでひと息'],['02','WALK','れんが通りをゆっくり散歩'],['03','SERENE','クリニックで、じっくり相談']]},
+      {t:'view', label:'SERENE VIEW', lines:['静かな一日の中に、','セリーンを。']},
+      {t:'cta', lines:['聖水で、お待ちしています。'], btns:['場所・アクセスを見る','プロフィールを見る']}]},
+    {id:'C10', file:'SER_JP_C10_BOF_P5_D', kind:'Dynamic', funnel:'BOF', pillar:'P5 예약·방문 프로세스', title:'일본→세린 예약 과정',
+     role:'일본 고객의 예약·방문 절차 불안을 6단계로 해소하고 LINE 행동을 유도. QR 코드 미사용.',
+     cta:'LINE으로 상담하기 / 일정 확인하기',
+     checks:['실제 예약 운영과 단계 일치 확인','당일 상담·시술 가능 여부 확정 표현 금지'],
+     script:[['HOOK','日本からのご予約も、難しくありません。'],['CLARIFY','LINEでご相談、お悩みと渡韓日程の共有、そしてご予約。'],['VIEW','韓国へ。聖水のセリーンで、医師の診察を。'],['ACTION','日程のご確認も、LINEでお気軽にどうぞ。']],
+     frames:[
+      {t:'hook', label:'SERENE PROCESS', lines:['日本からのご予約も、','難しくありません。']},
+      {t:'steps', label:'PROCESS', title:'ご相談から診察まで', items:['LINEでご相談','お悩み・渡韓日程の共有','ご予約','韓国へ','聖水 SERENE','医師の診察']},
+      {t:'view', label:'SERENE VIEW', lines:['日程・当日のご案内は、','相談の中で','ご確認いただけます。']},
+      {t:'cta', lines:['LINEでお気軽に。'], btns:['LINEで相談する','日程を確認する']}]},
+    {id:'C11', file:'SER_JP_C11_BOF_P7_R', kind:'Reel', funnel:'BOF', pillar:'P7 LINE 상담·전환', title:'LINE 사진 상담',
+     role:'무엇을 문의할지 모르는 고객에게 LINE 상담 입력 항목 4가지를 구체적으로 안내.',
+     cta:'LINE에서 사진과 고민 보내기',
+     checks:['실제 환자 데이터·대화 캡처 사용 금지','사진만으로 진단·적합성 확정 표현 금지'],
+     script:[['HOOK','どの施術が自分に合うかわからなくても、大丈夫。'],['CLARIFY','気になる部位、ご希望、渡韓日程、お写真。この4つを送ってください。'],['VIEW','お写真だけで判断はしません。ご提案は、診察のあとに。'],['ACTION','LINEでお気軽にご相談ください。']],
+     frames:[
+      {t:'hook', label:'SERENE CONSULTATION', lines:['どの施術が自分に合うか','わからなくても大丈夫。']},
+      {t:'list', label:'SEND US', title:'送っていただきたい4つ', items:[['01','気になる部位','例：フェイスライン、頬 など'],['02','ご希望','変化のイメージ'],['03','渡韓日程','ご滞在のご予定'],['04','お写真','明るい場所で、正面から']]},
+      {t:'view', label:'SERENE VIEW', lines:['お写真だけで','判断はしません。','ご提案は、診察のあとに。']},
+      {t:'cta', lines:['写真とお悩みを、そのまま。'], btns:['LINEで写真とお悩みを送る']}]},
+    {id:'C12', file:'SER_JP_C12_TOFMOF_P2_R', kind:'Reel', funnel:'TOF→MOF', pillar:'P2 상태 기반 선택', title:'시술명→현재 상태 전환',
+     role:'시술명 탐색에서 현재 상태 이해로 관점을 전환하는 브랜드 관점 콘텐츠.',
+     cta:'상태 확인 가이드 보기 / LINE에서 상담하기',
+     checks:['자가진단 도구처럼 보이지 않게 유지','관찰 포인트는 상담용 질문임을 유지'],
+     script:[['HOOK','「何を受ける？」よりも、今の状態を知ることから。'],['CLARIFY','頬の位置、フェイスライン、ハリ・弾力。'],['VIEW','観察は診断ではなく、相談のための質問です。'],['ACTION','状態確認ガイドはプロフィールから。LINEでもご相談いただけます。']],
+     frames:[
+      {t:'hook', label:'SERENE VIEW 03', lines:['「何を受ける？」よりも、','今の状態を','知ることから。']},
+      {t:'list', label:'OBSERVE', title:'観察してみる3つのポイント', items:[['01','頬の位置','高さの印象をみる'],['02','フェイスライン','輪郭のラインをみる'],['03','ハリ・弾力','肌表面の印象をみる']]},
+      {t:'view', label:'SERENE VIEW', lines:['観察は診断ではなく、','相談のための','質問です。']},
+      {t:'cta', lines:['状態を知ることから。'], btns:['状態確認ガイドを見る','LINEで相談する']}]}
+  ];
+
+  componentDidMount() {
+    try {
+      const st = JSON.parse(localStorage.getItem('serene-ig-board-status') || '{}');
+      const im = JSON.parse(localStorage.getItem('serene-ig-board-images') || '{}');
+      this.setState({ status: st, images: im });
+    } catch (e) {}
+  }
+
+  persist() {
+    try {
+      localStorage.setItem('serene-ig-board-status', JSON.stringify(this.state.status));
+      localStorage.setItem('serene-ig-board-images', JSON.stringify(this.state.images));
+    } catch (e) {}
+  }
+
+  setStage(id, i) {
+    this.setState(s => ({ status: { ...s.status, [id]: { ...(s.status[id] || {}), stage: i } } }), () => this.persist());
+  }
+
+  setNote(id, v) {
+    this.setState(s => ({ status: { ...s.status, [id]: { ...(s.status[id] || {}), note: v } } }), () => this.persist());
+  }
+
+  dropImage(slotId, e) {
+    e.preventDefault();
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      this.setState(s => ({ images: { ...s.images, [slotId]: rd.result } }), () => this.persist());
+    };
+    rd.readAsDataURL(file);
+  }
+
+  async exportFrame(fid, dlName) {
+    const node = document.querySelector('[data-frame="' + fid + '"]');
+    if (!node || !window.htmlToImage) return;
+    const safe = node.querySelector('[data-safe]');
+    if (safe) safe.style.display = 'none';
+    try {
+      const url = await window.htmlToImage.toPng(node, { pixelRatio: 3.75 });
+      const a = document.createElement('a');
+      a.href = url; a.download = dlName + '.png'; a.click();
+    } catch (e) { console.warn('export failed', e); }
+    if (safe) safe.style.display = '';
+  }
+
+  async exportAll(c) {
+    this.setState({ busy: c.id });
+    const n = c.frames.length;
+    for (let i = 0; i < n; i++) {
+      const fid = c.file + '_S' + String(i + 1).padStart(2, '0');
+      const dlName = (c.kind !== 'Carousel' && i === 0) ? c.file : fid;
+      await this.exportFrame(fid, dlName);
+      await new Promise(r => setTimeout(r, 450));
+    }
+    this.setState({ busy: '' });
+  }
+
+  copyScript(c) {
+    const txt = c.script.map(s => '[' + s[0] + '] ' + s[1]).join('\n');
+    if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    this.setState({ copied: c.id });
+    setTimeout(() => this.setState({ copied: '' }), 1500);
+  }
+
+  async cap(fid, ratio) {
+    const node = document.querySelector('[data-frame="' + fid + '"]');
+    if (!node || !window.htmlToImage) return null;
+    const safe = node.querySelector('[data-safe]');
+    if (safe) safe.style.display = 'none';
+    let url = null;
+    try { url = await window.htmlToImage.toPng(node, { pixelRatio: ratio }); }
+    catch (e) { console.warn('capture failed', fid, e); }
+    if (safe) safe.style.display = '';
+    return url;
+  }
+
+  async openPreview(c) {
+    if (this.state.pvBusy) return;
+    this.setState({ pvBusy: c.id });
+    const imgs = [];
+    for (let i = 0; i < c.frames.length; i++) {
+      const u = await this.cap(c.file + '_S' + String(i + 1).padStart(2, '0'), 1.5);
+      if (u) imgs.push(u);
+    }
+    this.setState({ pvBusy: '', preview: imgs.length ? { id: c.id, title: c.title, imgs, idx: 0, tick: 0, script: c.script || [] } : null });
+    if (imgs.length) {
+      clearInterval(this._pvT);
+      this._pvT = setInterval(() => {
+        this.setState(s => s.preview ? { preview: { ...s.preview, idx: (s.preview.idx + 1) % s.preview.imgs.length, tick: (s.preview.tick || 0) + 1 } } : {});
+      }, 3200);
+    }
+  }
+
+  closePreview() { clearInterval(this._pvT); this.setState({ preview: null }); }
+
+  async exportZip(c) {
+    if (!window.JSZip || this.state.busy) return;
+    this.setState({ busy: c.id });
+    const zip = new window.JSZip();
+    for (let i = 0; i < c.frames.length; i++) {
+      const fid = c.file + '_S' + String(i + 1).padStart(2, '0');
+      const name = (c.kind !== 'Carousel' && i === 0) ? c.file : fid;
+      const u = await this.cap(fid, 3.75);
+      if (u) zip.file(name + '.png', u.split(',')[1], { base64: true });
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = c.file + '.zip'; a.click();
+    this.setState({ busy: '' });
+  }
+
+  async exportPdf() {
+    if (!(window.jspdf && window.jspdf.jsPDF) || this.state.pdfBusy) return;
+    this.setState({ pdfBusy: true });
+    const doc = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    for (let ci = 0; ci < this.DATA.length; ci++) {
+      const c = this.DATA[ci];
+      if (ci > 0) doc.addPage();
+      doc.setFontSize(14); doc.setTextColor(68, 106, 91);
+      doc.text(c.id + '  |  ' + c.file, 12, 15);
+      doc.setFontSize(9); doc.setTextColor(125, 130, 115);
+      const stg = ((this.state.status[c.id] || {}).stage || 0);
+      doc.text(c.kind + '  |  ' + c.funnel + '  |  status: ' + ['Preview', 'Confirm', 'Final', 'Published'][stg] + '  |  SERENE IG Review Sheet', 12, 21);
+      const isCar = c.kind === 'Carousel';
+      for (let i = 0; i < c.frames.length; i++) {
+        const u = await this.cap(c.file + '_S' + String(i + 1).padStart(2, '0'), 2);
+        if (!u) continue;
+        if (isCar) { const w = 60, h = 75, col = i % 3, row = Math.floor(i / 3);
+          doc.addImage(u, 'PNG', 12 + col * (w + 6), 27 + row * (h + 6), w, h);
+        } else { const h = 115, w = 64.7;
+          doc.addImage(u, 'PNG', 12 + i * (w + 6), 27, w, h);
+        }
+      }
+    }
+    doc.save('SERENE_IG_Review_Sheet.pdf');
+    this.setState({ pdfBusy: false });
+  }
+
+  stageBtnStyle(i, cur) {
+    const base = 'white-space:nowrap;border-radius:999px;padding:6px 13px;font-size:11px;letter-spacing:.03em;';
+    if (i === cur) return base + 'background:#446A5B;color:#F2EFE6;border:1px solid #446A5B;font-weight:700';
+    if (i < cur) return base + 'background:#E5ECE4;color:#598865;border:1px solid #C9D6C8';
+    return base + 'background:#FFFFFF;color:#9AA08F;border:1px solid #E2DECF';
+  }
+
+  renderVals() {
+    const showScripts = this.props.showScripts !== false;
+    const showSafe = this.props.showSafeZone === true;
+    const stat = this.state.status;
+    const contents = this.DATA.map(c => {
+      const st = stat[c.id] || { stage: 0, note: '' };
+      const stages = this.STAGES.map((label, i) => ({
+        label, style: this.stageBtnStyle(i, st.stage || 0), set: () => this.setStage(c.id, i)
+      }));
+      const isCar = c.kind === 'Carousel';
+      const frames = c.frames.map((f, idx) => {
+        const fid = c.file + '_S' + String(idx + 1).padStart(2, '0');
+        const dlName = (!isCar && idx === 0) ? c.file : fid;
+        const out = {
+          fid, fh: isCar ? 360 : 512,
+          label: f.label || '', title: f.title || '', note: f.note || '',
+          n: f.n || '', body: f.body || '', sub: f.sub || '', hasSub: !!f.sub,
+          lines: f.lines || [],
+          tList: f.t === 'list', tSplit: f.t === 'split', tSteps: f.t === 'steps',
+          tChat: f.t === 'chat', tCase: f.t === 'case', tPoint: f.t === 'point',
+          tInfo: f.t === 'info', tView: f.t === 'view', tCta: f.t === 'cta',
+          dark: f.t === 'view' || (f.t === 'hook' && !f.slot), light: !(f.t === 'view' || (f.t === 'hook' && !f.slot)),
+          safe: showSafe && !isCar,
+          hasSlot: f.t === 'hook' && !!f.slot,
+          plainHook: f.t === 'hook' && !f.slot,
+          hasCov: !!f.cov, covItems: f.cov || [],
+          hint: f.hint || '',
+          colL: f.colL || {}, colR: f.colR || {},
+          tags: f.tags || [],
+          tagLabel: (!isCar && idx === 0 ? '커버 · ' : '') + fid.slice(-3) + ' · ' + (isCar ? '1080×1350' : '1080×1920'),
+          dl: () => this.exportFrame(fid, dlName)
+        };
+        if (f.t === 'hook' && f.slot) {
+          const img = this.state.images[f.slot] || (f.slot === 'c01-hero' ? 'assets/c01-hero.png' : '');
+          out.imgCss = img ? 'url(' + img + ')' : 'none'; out.hasImg = !!img; out.noImg = !img;
+          out.onDrop = (e) => this.dropImage(f.slot, e);
+          out.onOver = (e) => e.preventDefault();
+        }
+        if (f.t === 'list') out.items = (f.items || []).map(it => ({ n: it[0], t: it[1], s: it[2] || '', hasS: !!it[2] }));
+        if (f.t === 'steps') out.items = (f.items || []).map((t, i) => ({ n: String(i + 1).padStart(2, '0'), t, g: i < 3, b: i >= 3 }));
+        if (f.t === 'chat') out.bubbles = (f.bubbles || []).map(b => ({ p: b[0] === 'P', d: b[0] === 'D', text: b[1] }));
+        if (f.t === 'info') out.rows = (f.rows || []).map(r => ({ k: r[0], v: r[1] }));
+        if (f.t === 'cta') out.btns = (f.btns || []).map((label, i) => ({ label, primary: i === 0, sec: i > 0 }));
+        if (f.t === 'case') out.slots = (f.slots || []).map((sid, i) => {
+          const img = this.state.images[sid];
+          return { tag: i === 0 ? 'BEFORE' : 'AFTER', imgCss: img ? 'url(' + img + ')' : 'none', hasImg: !!img, noImg: !img,
+            onDrop: (e) => this.dropImage(sid, e), onOver: (e) => e.preventDefault() };
+        });
+        return out;
+      });
+      const hasScript = showScripts && !!c.script;
+      return {
+        id: c.id, file: c.file, title: c.title, role: c.role, cta: c.cta,
+        chips: [c.funnel, c.pillar, c.kind + (isCar ? ' · 4:5 · 1080×1350' : ' · 9:16 · 1080×1920')],
+        gate: c.gate || '', hasGate: !!c.gate,
+        checks: c.checks || [],
+        stages, frames,
+        hasScript, noScript: !hasScript,
+        script: (c.script || []).map((s, i) => ({ scene: s[0], text: s[1], kr: (this.KRS[c.id] || [])[i] || '' })),
+        isVideo: !!c.script,
+        openPv: () => this.openPreview(c),
+        pvLabel: this.state.pvBusy === c.id ? '프리뷰 준비 중…' : '▶ 모션 프리뷰',
+        caption: c.caption || '가이드 캡션 골격 참조',
+        copy: () => this.copyScript(c),
+        copyLabel: this.state.copied === c.id ? '복사됨 ✓' : '원고 복사',
+        note: st.note || '',
+        onNote: (e) => this.setNote(c.id, e.target.value),
+        dlAll: () => this.exportZip(c),
+        dlAllLabel: this.state.busy === c.id ? 'ZIP 생성 중…' : 'ZIP 다운로드 (' + c.frames.length + '장 · 가이드 네이밍)'
+      };
+    });
+    const stageCounts = this.STAGES.map((label, i) => ({
+      label, n: this.DATA.filter(c => ((stat[c.id] || {}).stage || 0) === i).length
+    }));
+    const pv = this.state.preview;
+    return {
+      contents, stageCounts,
+      pdf: () => this.exportPdf(),
+      pdfLabel: this.state.pdfBusy ? '검수 시트 생성 중… (약 30초)' : '검수 시트 PDF ↓',
+      pvOpen: !!pv,
+      pvTitle: pv ? pv.id + ' · ' + pv.title : '',
+      pvImgs: pv ? pv.imgs.map((src, i) => ({ css: 'url(' + src + ')', op: i === pv.idx ? 1 : 0, anim: i === pv.idx ? 'kenburns 3.2s ease-in-out forwards' : 'none' })) : [],
+      pvBarAnim: pv ? ((pv.tick || 0) % 2 ? 'pvbar2' : 'pvbar') + ' 3.2s linear forwards' : 'none',
+      pvScene: pv && pv.script[pv.idx] ? pv.script[pv.idx][0] : '',
+      pvText: pv && pv.script[pv.idx] ? pv.script[pv.idx][1] : '',
+      pvDots: pv ? pv.imgs.map((x, i) => ({ bg: i === pv.idx ? '#446A5B' : '#C9D6C8' })) : [],
+      pvClose: () => this.closePreview(),
+      pvStop: (e) => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>
